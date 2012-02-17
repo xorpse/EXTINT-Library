@@ -1,0 +1,646 @@
+------------------------------------------------------------------------------
+EXTINT LIBRARY DOCUMENTATION : Sam Thomas <s@ghost.sh>
+------------------------------------------------------------------------------
+Library Aims
+------------
+I started this project with the intent of having an extensible library
+capable of handling large integers that would assemble and work correctly on
+a number of Operating Systems (Windows and Linux).
+------------------------------------------------------------------------------
+Constants and Data Types
+------------------------
+There are a number of constants provided by the library, they are used to
+represent the sizes of data types for both internal library functionality, and
+also for the end user's use.
+
+Below is the table of constants provided by the library:
++---------------------+----------------------+
+| Constant definition | Size in double words |
+|---------------------|----------------------|
+| INT_TYPE_64_BITS    |                    2 |
+| INT_TYPE_128_BITS   |                    4 |
+| INT_TYPE_256_BITS   |                    8 |
+| INT_TYPE_512_BITS   |                   16 |
+| INT_TYPE_1024_BITS  |                   32 |
+| INT_TYPE_2048_BITS  |                   64 |
+| INT_TYPE_4096_BITS  |                  128 |
++---------------------+----------------------+
+|  Special constants  |        Value         |
+|---------------------|----------------------|
+| INT_TYPE_MAX_BITS   |   INT_TYPE_4096_BITS |
++---------------------+----------------------+
+
+The values in the table above form the enumerated type defined in the C header
+'extint_t', this is used for representing the type of a passed parameter.
+
+For assembly language and assemblers with similar data definition syntax the
+following may be used to allocate space for variable of one of the types in
+the above table:
+
+Example:
+	extint_example dd INT_TYPE_4096 dup(0h)
+
+In C allocation is more simple; and uses the following list of type
+definitions:
+
++-----------------+----------------------+
+| Type definition | Size in double words |
+|-----------------|----------------------|
+| ext_int64       |                    2 |
+| ext_int128      |                    4 |
+| ext_int256      |                    8 |
+| ext_int512      |                   16 |
+| ext_int1024     |                   32 |
+| ext_int2048     |                   64 |
+| ext_int4096     |                  128 |
+| ext_int_max     |        (default) 128 |
++-----------------+----------------------+
+
+Data definition is universal for all modern C compilers, and is shown below,
+allocating space for the same variable as in the assembly language example:
+
+Example:
+	ext_int4096 extint_example;
+
+Additionally, the contents of each double word in the C data type may be
+reference, using the '.part[...]' member of the variable, where ... is the
+index of the double word within the variable. 
+
+Example:
+	printf("0x%08X%08X", extint_example.part[1], extint_example.part[0]);
+
+The above example will output the lowest quad-word of the variable.
+
+The special constant definitions represent the largest possible type of
+integer that the library can handle, this may be changed, so the library can
+have a smaller memory footprint or to add additional (larger) types. This will
+be explained in the section entitled 'Customising the library'.
+------------------------------------------------------------------------------
+Function reference
+------------------
+Assignment functions
+--------------------
+function: extassign - assign a value to an ext_int* variable
+------------------------------------------------------------------------------
+Prototype:
+	void extassign (
+		void *extint_dest,
+		enum extint_t extint_type,
+		unsigned long int extint_length,
+		unsigned long int ...
+	)
+Explanation:
+	extint_dest: the address of the extint variable to assign a value to;
+	extint_type: the type (size) of value represented by extint_dest (see
+		     above section for definition of enumerated type);
+	extint_length: the length of the integer passed as variable arguments
+		       in double words;
+	... : the numerical data to be assigned to the destination variable,
+	      this should be passed as follows: 0x01, 0x80000000, 0x01, 0x0;
+	      this will represent the number: 0x1800000000000000100000000.
+
+function: extassign_zero - assign the value zero to an ext_int* variable
+------------------------------------------------------------------------------
+Prototype:
+	void extassign_zero (
+		void *extint_dest,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the extint variable to assign the value 0
+		     to;
+	extint_type: the type (size) of value represented by extint_dest (see
+		     above section for definition of enumerated type).
+
+function: extassign_neg_one - assigns the value minus one to an ext_int*
+	  variable
+------------------------------------------------------------------------------
+Prototype:
+	void extassign_neg_one (
+		void *extint_dest,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to assign the value
+		     -1 to;
+	extint_type: the type (size) of value represented by extint_dest (see
+		     above section for definition of enumerated type).
+
+------------------------------------------------------------------------------
+Simple arithmetic functions
+---------------------------
+function: extadd - add two ext_int* variables together and stores the result
+------------------------------------------------------------------------------
+Prototype:
+	unsigned long int extadd (
+		void *extint_dest,
+		void *extint_src,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     and that of the first addition operand;
+	extint_src: the address of the ext_int* variable to use as the second
+		    addition operand;
+	extint_type: the type (size) of value represented by extint_dest and
+		     extint_src (note, that both operands must be the same
+		     size).
+	return value: returns 1 if there is carry produced from the addition,
+		      that is the resultant cannot be fully stored in the
+		      destination operand.
+
+function: extsub - subtract two ext_int* variables and store the result
+------------------------------------------------------------------------------
+Prototype:
+	unsigned long int extsub (
+		void *extint_dest,
+		void *extint_src,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     and the first subtration operand;
+	extint_src: the address of the ext_int* variable to use as the second
+		    subtraction operand;
+	extint_type: the type (size) of value represented by extint_dest and
+		     extint_src (note, that both operands must be the same
+		     size).
+	return value: returns 1 if there is borrow produced from the
+		      subtraction that is the resultant cannot be fully
+		      stored in the destination operand.
+
+function: extneg - change the sign of the ext_int* variable
+------------------------------------------------------------------------------
+Prototype:
+	void extneg (
+		void *extint_dest,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to use as the first
+		     operand, and that to store the result in;
+	extint_type: the type (size) of value represented by extint_dest and
+		     extint_src (note, that both operands must be the same
+		     size). 
+
+function: extinc - increment the ext_int* variable by 1
+------------------------------------------------------------------------------
+Prototype:
+	void extinc (
+		void *extint_dest,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to increment, and
+		     that to store the result in;
+	extint_type: the type (size) of value represented by extint_dest and
+		     extint_src (note, that both operands must be the same
+		     size).
+
+function: extdec - decrement the ext_int* variable by 1
+------------------------------------------------------------------------------
+Prototype:
+	void extdec (
+		void *extint_dest,
+		void extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to decrement, and
+		     that to store the result in;
+	extint_type: the type (size) of value represented by extint_dest and
+		     extint_src (note, that both operands must be the same
+		     size).
+
+------------------------------------------------------------------------------
+Complex arithmetic functions
+----------------------------
+function: extdiv - divide two ext_int* variables
+------------------------------------------------------------------------------
+Prototype:
+	void extdiv (
+		void *extint_quot,
+		void *extint_resi,
+		void *extint_src,
+		void *extint_divisor,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_quot: the address of the ext_int* variable to store the
+		     quotient of the division operation;
+	extint_resi: the address of the ext_int* variable to store the residue
+		     of the division operation;
+	extint_src: the address of the ext_int* variable 'source' (first
+		    operand) of division (the variable to divide);
+	extint_divisor: the address of the ext_int* variable 'divisor' (second
+			operand) of division (the variable to divide by);
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extidiv - divide two ext_int* variables (treating values as signed)
+------------------------------------------------------------------------------
+Prototype:
+	void extidiv (
+		void *extint_quot,
+		void *extint_resi,
+		void *extint_src,
+		void *extint_divisor,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_quot: the address of the ext_int* variable to store the
+		     quotient of the division operation;
+	extint_resi: the address of the ext_int* variable to store the residue
+		     of the division operation;
+	extint_src: the address of the ext_int* variable 'source' (first
+		    operand) of division (the variable to divide);
+	extint_divisor: the address of the ext_int* variable 'divisor' (second
+			operand) of division (the variable to divide by);
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extmul - multiply two ext_int* variables
+------------------------------------------------------------------------------
+Prototype:
+	void extmul (
+		void *extint_dest,
+		void *extint_src,
+		void *extint_multiplier,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     of the multiplication;
+	extint_src: the address of the ext_int* variable to use as the first*
+		    operand of the multiplication;
+	extint_multiplier: the address of the ext_int* variable to use as the
+			   second operand of the multiplication;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+*IMPORTANT: For faster multiplication make sure that the second number is the
+smaller number; or if possible to test less complex, that is it has less set
+bits than the first operand. (The function extmuls automatically optimises
+the process by first checking the order of inputs and changing them if needed
+before calling the multiplication function; however this causes some overhead;
+so if possible specify the operands in the opimised order.
+
+function: extmul - multiply two ext_int* variables (treating values as signed)
+------------------------------------------------------------------------------
+Prototype:
+	void extimul (
+		void *extint_dest,
+		void *extint_src,
+		void *extint_multiplier,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     of the multiplication;
+	extint_src: the address of the ext_int* variable to use as the first*
+		    operand of the multiplication;
+	extint_multiplier: the address of the ext_int* variable to use as the
+			   second operand of the multiplication;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+*IMPORTANT: For faster multiplication make sure that the second number is the
+smaller number; or if possible to test less complex, that is it has less set
+bits than the first operand. (The function extimuls automatically optimises
+the process by first checking the order of inputs and changing them if needed
+before calling the multiplication function; however this causes some overhead;
+so if possible specify the operands in the opimised order.
+
+------------------------------------------------------------------------------
+Optimised complex arithmetic functions
+--------------------------------------
+function: extmuls - multiply two ext_int* variables
+------------------------------------------------------------------------------
+Prototype:
+	void extmuls (
+		void *extint_dest,
+		void *extint_src,
+		void *extint_multiplier,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     of the multiplication;
+	extint_src: the address of the ext_int* variable to use as the first*
+		    operand of the multiplication;
+	extint_multiplier: the address of the ext_int* variable to use as the
+			   second operand of the multiplication;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extmuls - multiply two ext_int* variables (treating values as signed
+)
+------------------------------------------------------------------------------
+Prototype:
+	void extimuls (
+		void *extint_dest,
+		void *extint_src,
+		void *extint_multiplier,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     of the multiplication;
+	extint_src: the address of the ext_int* variable to use as the first*
+		    operand of the multiplication;
+	extint_multiplier: the address of the ext_int* variable to use as the
+			   second operand of the multiplication;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+------------------------------------------------------------------------------
+Bitwise manipulation - shift functions
+--------------------------------------
+function: extshl - shift a ext_int* variable left by an amount
+------------------------------------------------------------------------------
+Prototype:
+	void extshl (
+		void *extint_dest,
+		void *extint_src,
+		unsigned long int shift,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     of the left shift;
+	extint_src: the address of the ext_int* variable to use as the source
+		    to shift left;
+	extint_shift: the amount of bits to shift left (32-bit value);
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extshl_single - shift a ext_int* variable left by bit
+------------------------------------------------------------------------------
+Prototype:
+	void extshl_single (
+		void *extint_value,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_value: the address of the ext_int* variable to shift left;
+	extint_type: the type (size) of the value specified in extint_value to
+		     shift left by one place.
+
+function: extshl - shift a ext_int* variable right by an amount
+------------------------------------------------------------------------------
+Prototype:
+	void extshr (
+		void *extint_dest,
+		void *extint_src,
+		unsigned long int shift,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the result
+		     of the right shift;
+	extint_src: the address of the ext_int* variable to use as the source
+		    to shift right;
+	extint_shift: the amount of bits to shift right (32-bit value);
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extshl_single - shift a ext_int* variable right by bit
+------------------------------------------------------------------------------
+Prototype:
+	void extshl_single (
+		void *extint_value,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_value: the address of the ext_int* variable to shift right;
+	extint_type: the type (size) of the value specified in extint_value to
+		     shift right by one place.
+
+------------------------------------------------------------------------------
+Bitwise manipulation - rotate functions
+---------------------------------------
+function: extrol - rotate a ext_int* variable left by an amount
+------------------------------------------------------------------------------
+Prototype:
+	void extrol (
+		void *extint_dest,
+		void *extint_src,
+		unsigned long int extint_rotate,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the rotated
+		     result;
+	extint_src: the address of the ext_int* variable to rotate left;
+	extint_rotate: the amount of bits to rotate left by (32-bit value);
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extror - rotate a ext_int* variable right by an amount
+------------------------------------------------------------------------------
+Prototype:
+	void extror (
+		void *extint_dest,
+		void *extint_src,
+		unsigned long int extint_rotate,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to store the rotated
+		     result;
+	extint_src: the address of the ext_int* variable to rotate right;
+	extint_rotate: the amount of bits to rotate right by (32-bit value);
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+------------------------------------------------------------------------------
+Bitwise manipulation - boolean (and derived) functions
+------------------------------------------------------
+function: extand - perform a bitwise and upon two ext_int* variables
+------------------------------------------------------------------------------
+Prototype:
+	void extand (
+		void *extint_dest,
+		void *extint_src,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to use as the first
+		     operand of the function, also used to store the result;
+	extint_src: the address of the ext_int* variable to use as the second
+		    operand of the function;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extor - perform a bitwise or upon two ext_int* variables
+------------------------------------------------------------------------------
+Prototype:
+	void extor (
+		void *extint_dest,
+		void *extint_src,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to use as the first
+		     operand of the function, also used to store the result;
+	extint_src: the address of the ext_int* variable to use as the second
+		    operand of the function;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extxor - perform a bitwise xor upon two ext_int* variables
+------------------------------------------------------------------------------
+Prototype:
+	void extxor (
+		void *extint_dest,
+		void *extint_src,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to use as the first
+		     operand of the function, also used to store the result;
+	extint_src: the address of the ext_int* variable to use as the second
+		    operand of the function;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+function: extnot - perform a bitwise not upon a ext_int* variable
+------------------------------------------------------------------------------
+Prototype:
+	void extnot (
+		void *extint_dest,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to perform the
+		     function upon, also used to store the result;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+
+------------------------------------------------------------------------------
+Binary comparison functions
+---------------------------
+function: extcmp - compares two ext_int* variables
+------------------------------------------------------------------------------
+Prototype:
+	unsigned long int extcmp (
+		void *extint_dest,
+		void *extint_src,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to use as the first
+		     operand (that is the variable to compare against);
+	extint_src: the address of the ext_int* variable to use as the second
+		    operand;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+	return value: returns 1 if first operand is above;
+		      returns 0 if first operand is equal to second operand;
+		      returns -1 if first operand is below the second operand.
+
+function: exticmp - compares two ext_int* variables (using signed values)s
+------------------------------------------------------------------------------
+Prototype:
+	unsigned long int exticmp (
+		void *extint_dest,
+		void *extint_src,
+		enum extint_t extint_type
+	)
+Explanation:
+	extint_dest: the address of the ext_int* variable to use as the first
+		     operand (that is the variable to compare against);
+	extint_src: the address of the ext_int* variable to use as the second
+		    operand;
+	extint_type: the type (size) of the value represented by the inputs
+		     and outputs to the function (note, all operands must be
+		     the same type).
+	return value: returns 1 if first operand is greater;
+		      returns 0 if first operand is equal to second operand;
+		      returns -1 if first operand is less than the second
+		      operand.
+
+------------------------------------------------------------------------------
+Customising the library
+-----------------------
+To customise the library a few tools are required, namely FASM which can be
+downloaded from the authors website [1]. Aside from that you will need a text
+editor.
+
+The library can of course be extended in other ways than that will be shown
+here, but if you are willing to make code changes, etc. you are expected to
+already have the knowledge to do so (as it's not a library specific task).
+
+The customisation that is shown here is how to add a new data type to the
+library, there is no feasible limit to the amount of bits that can be used as
+the upper limit of a data type but here are the recommendations/theoretical
+limits:
+	-> upper limit: 2^32 - 1 (4,294,967,295) bits;
+	-> format: multiple of 32 (i.e. 32, 64, 128, etc.).
+
+Changes to files:
+constant.inc:
+...
+INT_TYPE_1024_BITS	= 32
+INT_TYPE_2048_BITS	= 64
+INT_TYPE_4096_BITS	= 128
+...
+Adding a new type requires it be of the same format (INT_TYPE_[...]_BITS),
+where [...] indicates the amount of bits; the value of this constant is the
+amount of double-words (multiples of 32) the new type will cast.
+
+Should this type be larger than the existing types then the limits section
+will need to be updated too:
+...
+INT_TYPE_MAX_BITS = [...]
+
+Where the [...] will be the constant definition of the new type, for instance
+if a type holding 8192 bits is to be added then the limit will be set like as
+follows:
+...
+INT_TYPE_MAX_BITS = INT_TYPE_8192_BITS
+
+Following this example; the library will need to be reassembled, and the C
+header file should be modified. The changes that are needed are as follows:
+
+extint.h:
+...
+enum extint_t { INT_TYPE_64_BITS = 2, ..., [...] }
+
+Where the [...] should be replaced by the constant definition from the
+assembly include file. The final modifications should be to add a 'typedef'
+for the new 'type', this should be in the format below:
+
+typedef struct {
+	unsigned long int part[INT_TYPE_{...}_BITS];
+} ext_int{...};
+
+Where the {...} should be replaced by the amount of bits for the new 'type',
+the limits section in the C header should also be updated as needed:
+
+#define INT_TYPE_MAX_BITS INT_TYPE_{...}_BITS
+#define ext_int_max ext_int{...}
+
+Where the {...} should be replaced by the amount of bits in the largest data
+type. No code modifications should be needed to allow the new type to be added
+unless it doesn't fit the requirements listed as the beginning of this
+section.
+
+------------------------------------------------------------------------------
+References
+----------
+[1]: FASM download page: http://flatassembler.net/download.php
