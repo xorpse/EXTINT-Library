@@ -6,6 +6,9 @@ Library Aims
 I started this project with the intent of having an extensible library
 capable of handling large integers that would assemble and work correctly on
 a number of Operating Systems (Windows and Linux).
+
+NOTE: Needs FASM to assemble correctly see references [1]
+
 ------------------------------------------------------------------------------
 Constants and Data Types
 ------------------------
